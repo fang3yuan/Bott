@@ -10,7 +10,7 @@
 
 ## Overview
 
-**InstaAI-Bot** is a lightweight Python bot that monitors Instagram private messages and generates automatic replies using **Google Gemini 2.5 Flash**.
+**InstaAI-Bot** is a lightweight Python bot that monitors Instagram private messages and generates automatic replies using **Google Gemini 3.8 Flash**.
 
 It is designed to be simple, lightweight, and easy to configure.
 
