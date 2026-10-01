@@ -410,7 +410,7 @@ class APIClient:
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-3.6-flash",
+        model: str = "gemini-2.0-flash",
     ):
         self.api_key = api_key.strip()
         self.model = model
@@ -475,7 +475,6 @@ class APIClient:
             "contents": history,
         }
 
-        # تطبيق خاصية Exponential Backoff & Retries لمعالجة خطأ 503 أو الضغط المؤقت
         max_retries = 3
         retry_delay = 3.0
 
@@ -520,7 +519,6 @@ class APIClient:
 
                                 return reply
 
-                # التعامل مع خطأ 503 أو 429 (إعادة المحاولة مع مضاعفة وقت الانتظار)
                 elif response.status_code in (503, 429):
                     self.log_api_error(
                         f"Gemini API ({response.status_code}) - High demand. "
@@ -552,7 +550,6 @@ class APIClient:
                 )
                 break
 
-        # في حال فشلت جميع المحاولات
         if history and history[-1].get("role") == "user":
             history.pop()
 
@@ -754,10 +751,8 @@ class MessageHandler:
 def main():
     cookies_file = "cookies.json"
 
-    # 1. البحث عن المفتاح في متغيرات البيئة
     gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
 
-    # 2. في حال عدم وجوده، يطلب السكربت من المستخدم إدخاله يدوياً عند التشغيل
     if not gemini_api_key:
         print("=== Gemini API Key Required ===")
         gemini_api_key = input("Enter your Gemini API Key: ").strip()
@@ -766,7 +761,7 @@ def main():
         print("ERROR: GEMINI_API_KEY is required to start the bot.")
         return
 
-    gemini_model = "gemini-3.8-flash"
+    gemini_model = "gemini-2.0-flash"
     poll_interval = 1.2
 
     bot = InstagramBot(cookies_file=cookies_file)
