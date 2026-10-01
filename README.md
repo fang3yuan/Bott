@@ -76,7 +76,7 @@ set GEMINI_API_KEY=YOUR_API_KEY
 
 ## Instagram Session
 
-Export your Instagram cookies using **EditThisCookie (V3)** and save them as:
+Export your Instagram cookies using **[EditThisCookie (V3)](https://chromewebstore.google.com/detail/editthiscookie-v3/ojfebgpkimhlhcblbalbfjblapadhbol)** and save them as:
 
 ```text
 cookies.json
