@@ -6,6 +6,7 @@ import time
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
 import requests
 
 
@@ -28,6 +29,7 @@ class InstagramBot:
     def log_error(self, error: str):
         line = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ERROR: {error}"
         print(line)
+
         try:
             with open("bot_errors.log", "a", encoding="utf-8") as f:
                 f.write(line + "\n")
@@ -47,6 +49,7 @@ class InstagramBot:
                 if isinstance(item, dict):
                     name = item.get("name")
                     value = item.get("value")
+
                     if name is not None and value is not None:
                         cookies[str(name)] = str(value)
 
@@ -60,6 +63,7 @@ class InstagramBot:
         try:
             with open(self.cookies_file, "r", encoding="utf-8") as f:
                 raw_data = json.load(f)
+
         except Exception as e:
             self.log_error(f"Failed to read cookies file: {e}")
             return False
@@ -80,16 +84,27 @@ class InstagramBot:
         rur = cookies.get("rur", "").strip()
 
         if not session_id or not csrftoken:
-            self.log_error("Cookies file must contain at least sessionid and csrftoken")
+            self.log_error(
+                "Cookies file must contain at least sessionid and csrftoken"
+            )
             return False
 
         self.session.cookies.clear()
+
         for name, value in cookies.items():
             self.session.cookies.set(name, value)
 
         self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "User-Agent": (
+                "Mozilla/5.0 (Linux; Android 10; K) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/139.0.0.0 Mobile Safari/537.36"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                "application/signed-exchange;v=b3;q=0.7"
+            ),
             "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate",
             "Referer": "https://www.instagram.com/direct/inbox/",
@@ -99,12 +114,18 @@ class InstagramBot:
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-User": "?1",
             "Sec-Fetch-Dest": "document",
-            "sec-ch-ua": '"Chromium";v="139", "Not;A=Brand";v="99"',
+            "sec-ch-ua": (
+                '"Chromium";v="139", '
+                '"Not;A=Brand";v="99"'
+            ),
             "sec-ch-ua-mobile": "?1",
             "sec-ch-ua-platform": '"Android"',
             "sec-ch-ua-platform-version": '"12.0.0"',
             "sec-ch-ua-model": '"TECNO CH6n"',
-            "sec-ch-ua-full-version-list": '"Chromium";v="139.0.7339.0", "Not;A=Brand";v="99.0.0.0"',
+            "sec-ch-ua-full-version-list": (
+                '"Chromium";v="139.0.7339.0", '
+                '"Not;A=Brand";v="99.0.0.0"'
+            ),
             "sec-ch-prefers-color-scheme": "light",
             "dpr": "3",
             "viewport-width": "980",
@@ -135,17 +156,30 @@ class InstagramBot:
         try:
             r = self.session.get(
                 f"{self.BASE}/direct_v2/inbox/",
-                params={"limit": "1", "visual_message_return_type": "unseen"},
-                timeout=20
+                params={
+                    "limit": "1",
+                    "visual_message_return_type": "unseen",
+                },
+                timeout=20,
             )
+
             if r.status_code == 200:
-                data = r.json()
+                try:
+                    data = r.json()
+                except ValueError:
+                    data = {}
+
                 if "inbox" in data or "data" in data:
-                    self.log_action("Successfully logged in using cookies.json")
+                    self.log_action(
+                        "Successfully logged in using cookies.json"
+                    )
                     return True
 
-            self.log_error(f"Session test failed: {r.status_code} | {r.text[:300]}")
+            self.log_error(
+                f"Session test failed: {r.status_code} | {r.text[:300]}"
+            )
             return False
+
         except Exception as e:
             self.log_error(f"Error during session test: {e}")
             return False
@@ -159,15 +193,23 @@ class InstagramBot:
                     "limit": "20",
                     "visual_message_return_type": "unseen",
                 },
-                timeout=20
+                timeout=20,
             )
 
             if r.status_code != 200:
-                self.log_error(f"Error fetching messages: {r.status_code} | {r.text[:200]}")
+                self.log_error(
+                    f"Error fetching messages: "
+                    f"{r.status_code} | {r.text[:200]}"
+                )
                 return []
 
             data = r.json()
-            inbox = data.get("inbox") or data.get("data", {}).get("inbox", {})
+
+            inbox = (
+                data.get("inbox")
+                or data.get("data", {}).get("inbox", {})
+            )
+
             return inbox.get("threads", [])
 
         except Exception as e:
@@ -185,7 +227,10 @@ class InstagramBot:
                 r = self.session.get(
                     url,
                     headers={
-                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "Accept": (
+                            "text/html,application/xhtml+xml,"
+                            "application/xml;q=0.9,*/*;q=0.8"
+                        ),
                         "Accept-Encoding": "gzip, deflate",
                         "Sec-Fetch-Mode": "navigate",
                         "Sec-Fetch-Dest": "document",
@@ -205,6 +250,7 @@ class InstagramBot:
                     r'fb_dtsg[^"]*"[^"]*"\s*,\s*"([^"]+)"',
                     r'"name":"fb_dtsg","value":"([^"]+)"',
                 ]
+
                 patterns_lsd = [
                     r'"LSD",\[\],\{"token":"([^"]+)"',
                     r'"LSD"[^}]*"token":"([^"]+)"',
@@ -214,27 +260,43 @@ class InstagramBot:
 
                 for pat in patterns_dtsg:
                     m = re.search(pat, html)
+
                     if m:
                         self._fb_dtsg = m.group(1)
                         break
 
                 for pat in patterns_lsd:
                     m = re.search(pat, html)
+
                     if m:
                         self._lsd = m.group(1)
                         break
 
                 if self._fb_dtsg and self._lsd:
-                    self.log_action("Sending tokens successfully extracted")
+                    self.log_action(
+                        "Sending tokens successfully extracted"
+                    )
                     return
 
             except Exception as e:
-                self.log_error(f"Error during token extraction: {e}")
+                self.log_error(
+                    f"Error during token extraction: {e}"
+                )
 
         self.log_error("Failed to extract fb_dtsg and lsd")
 
-    def send_reply(self, thread_id: str, message: str, thread_v2_id: Optional[str] = None) -> bool:
-        offline_id = str(int(time.time() * 1000)) + str(uuid.uuid4().int)[:6]
+    def send_reply(
+        self,
+        thread_id: str,
+        message: str,
+        thread_v2_id: Optional[str] = None,
+    ) -> bool:
+
+        offline_id = (
+            str(int(time.time() * 1000))
+            + str(uuid.uuid4().int)[:6]
+        )
+
         ig_thread_id = thread_v2_id or thread_id
 
         if not self._fb_dtsg or not self._lsd:
@@ -250,7 +312,9 @@ class InstagramBot:
                     "replied_to_item_id": None,
                     "reply_to_message_id": None,
                     "sampled": None,
-                    "text": {"sensitive_string_value": message},
+                    "text": {
+                        "sensitive_string_value": message
+                    },
                     "mentions": [],
                     "mentioned_user_ids": [],
                     "commands": None,
@@ -265,9 +329,14 @@ class InstagramBot:
                     "fb_dtsg": self._fb_dtsg,
                     "lsd": self._lsd,
                     "fb_api_caller_class": "RelayModern",
-                    "fb_api_req_friendly_name": "IGDirectTextSendMutation",
+                    "fb_api_req_friendly_name": (
+                        "IGDirectTextSendMutation"
+                    ),
                     "server_timestamps": "true",
-                    "variables": json.dumps(variables, separators=(",", ":")),
+                    "variables": json.dumps(
+                        variables,
+                        separators=(",", ":"),
+                    ),
                     "doc_id": "25288447354146606",
                 }
 
@@ -276,15 +345,22 @@ class InstagramBot:
                     headers={
                         "Accept": "*/*",
                         "Accept-Language": "en-US,en;q=0.9",
-                        "Content-Type": "application/x-www-form-urlencoded",
+                        "Content-Type": (
+                            "application/x-www-form-urlencoded"
+                        ),
                         "Origin": "https://www.instagram.com",
-                        "Referer": f"https://www.instagram.com/direct/t/{ig_thread_id}",
+                        "Referer": (
+                            "https://www.instagram.com/direct/t/"
+                            f"{ig_thread_id}"
+                        ),
                         "Sec-Fetch-Dest": "empty",
                         "Sec-Fetch-Mode": "cors",
                         "Sec-Fetch-Site": "same-origin",
                         "x-asbd-id": "359341",
                         "x-csrftoken": self.csrftoken,
-                        "x-fb-friendly-name": "IGDirectTextSendMutation",
+                        "x-fb-friendly-name": (
+                            "IGDirectTextSendMutation"
+                        ),
                         "x-fb-lsd": self._lsd,
                         "x-ig-app-id": "1217981644879628",
                     },
@@ -293,100 +369,233 @@ class InstagramBot:
                 )
 
                 if r.status_code == 200:
-                    resp = r.json()
-                    if resp.get("data") or (not resp.get("errors")):
-                        self.log_action(f"Reply successfully sent to {ig_thread_id}")
+                    try:
+                        resp = r.json()
+                    except ValueError:
+                        self.log_error(
+                            "GraphQL returned invalid JSON"
+                        )
+                        return False
+
+                    if resp.get("data") or not resp.get("errors"):
+                        self.log_action(
+                            f"Reply successfully sent to "
+                            f"{ig_thread_id}"
+                        )
                         return True
-                    self.log_error(f"GraphQL error: {str(resp)[:200]}")
+
+                    self.log_error(
+                        f"GraphQL error: {str(resp)[:200]}"
+                    )
+
                 else:
-                    self.log_error(f"GraphQL status {r.status_code}: {r.text[:200]}")
+                    self.log_error(
+                        f"GraphQL status {r.status_code}: "
+                        f"{r.text[:200]}"
+                    )
 
                     if r.status_code in (400, 401, 403):
                         self._fb_dtsg = None
                         self._lsd = None
 
             except Exception as e:
-                self.log_error(f"Exception in GraphQL send: {e}")
+                self.log_error(
+                    f"Exception in GraphQL send: {e}"
+                )
 
         return False
 
 
 class APIClient:
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
-        self.api_key = api_key
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "gemini-3.8-flash",
+    ):
+        self.api_key = api_key.strip()
         self.model = model
         self.http = requests.Session()
-        self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
-        self.thread_history: Dict[str, List[Dict[str, Any]]] = {}
+
+        self.base_url = (
+            "https://generativelanguage.googleapis.com/"
+            f"v1beta/models/{self.model}:generateContent"
+        )
+
+        self.thread_history: Dict[
+            str,
+            List[Dict[str, Any]]
+        ] = {}
 
         self.system_instruction = (
-            "You are an assistant replying on behalf of an Instagram account owner. "
-            "Politely inform the sender that the account owner is currently unavailable, "
+            "You are an assistant replying on behalf of "
+            "an Instagram account owner. "
+            "Politely inform the sender that the account owner "
+            "is currently unavailable, "
             "and that you are here to assist them until they return. "
             "Keep your responses very short, natural, and friendly. "
             "Do NOT state that you are an AI model. "
             "Avoid overly formal language. "
-            "Usually start with an idea like: 'I'm here to help until the owner gets back, how can I help you?' "
-            "If asked about the account owner, state that they are currently unavailable and their message will be passed on later. "
+            "Usually start with an idea like: "
+            "'I'm here to help until the owner gets back, "
+            "how can I help you?' "
+            "If asked about the account owner, state that they "
+            "are currently unavailable and their message "
+            "will be passed on later. "
             "Do not break character."
         )
 
-    def send_message(self, thread_id: str, message: str) -> str:
+    def send_message(
+        self,
+        thread_id: str,
+        message: str,
+    ) -> str:
+
         if thread_id not in self.thread_history:
             self.thread_history[thread_id] = []
 
         history = self.thread_history[thread_id]
-        history.append({"role": "user", "parts": [{"text": message}]})
+
+        history.append({
+            "role": "user",
+            "parts": [
+                {
+                    "text": message
+                }
+            ],
+        })
 
         payload = {
             "system_instruction": {
-                "parts": [{"text": self.system_instruction}]
+                "parts": [
+                    {
+                        "text": self.system_instruction
+                    }
+                ]
             },
-            "contents": history
+            "contents": history,
         }
 
         try:
             response = self.http.post(
                 f"{self.base_url}?key={self.api_key}",
                 json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=(8, 25)
+                headers={
+                    "Content-Type": "application/json"
+                },
+                timeout=(8, 25),
             )
 
             if response.status_code != 200:
-                print(f"Gemini API Error ({response.status_code}): {response.text}")
-                return "A temporary error occurred."
+                print(
+                    f"Gemini API Error "
+                    f"({response.status_code}): "
+                    f"{response.text}"
+                )
+
+                if history and history[-1].get("role") == "user":
+                    history.pop()
+
+                return ""
 
             data = response.json()
-            candidates = data.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                if parts:
-                    reply = parts[0].get("text", "").strip()
-                    history.append({"role": "model", "parts": [{"text": reply}]})
-                    return reply
 
-            return "I'm here to help until the account owner returns. How can I assist you?"
+            candidates = data.get("candidates", [])
+
+            if candidates:
+                parts = (
+                    candidates[0]
+                    .get("content", {})
+                    .get("parts", [])
+                )
+
+                if parts:
+                    reply = (
+                        parts[0]
+                        .get("text", "")
+                        .strip()
+                    )
+
+                    if reply:
+                        history.append({
+                            "role": "model",
+                            "parts": [
+                                {
+                                    "text": reply
+                                }
+                            ],
+                        })
+
+                        return reply
+
+            if history and history[-1].get("role") == "user":
+                history.pop()
+
+            self.log_api_error(
+                "Gemini returned no usable response."
+            )
+
+            return ""
+
+        except requests.RequestException as e:
+            if history and history[-1].get("role") == "user":
+                history.pop()
+
+            self.log_api_error(
+                f"Gemini request failed: {e}"
+            )
+
+            return ""
 
         except Exception as e:
-            return f"A temporary error occurred: {str(e)[:120]}"
+            if history and history[-1].get("role") == "user":
+                history.pop()
+
+            self.log_api_error(
+                f"Gemini error: {e}"
+            )
+
+            return ""
+
+    def log_api_error(self, message: str):
+        print(
+            f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] "
+            f"ERROR: {message}"
+        )
 
 
 class MessageHandler:
-    def __init__(self, bot: InstagramBot, api_client: APIClient):
+    def __init__(
+        self,
+        bot: InstagramBot,
+        api_client: APIClient,
+    ):
         self.bot = bot
         self.api_client = api_client
         self.processed_messages = set()
 
-    def _is_private_1to1_thread(self, thread: Dict[str, Any]) -> bool:
+    def _is_private_1to1_thread(
+        self,
+        thread: Dict[str, Any],
+    ) -> bool:
+
         users = thread.get("users", []) or []
+
         return len(users) == 1
 
-    def process_thread(self, thread: Dict[str, Any]) -> bool:
-        """Processes a single thread and returns True if successfully replied."""
+    def process_thread(
+        self,
+        thread: Dict[str, Any],
+    ) -> bool:
+
         try:
-            thread_id = str(thread.get("thread_id", ""))
-            thread_v2_id = str(thread.get("thread_v2_id", ""))
+            thread_id = str(
+                thread.get("thread_id", "")
+            )
+
+            thread_v2_id = str(
+                thread.get("thread_v2_id", "")
+            )
+
             items = thread.get("items", []) or []
 
             if not thread_id or not items:
@@ -396,47 +605,101 @@ class MessageHandler:
                 return False
 
             last_message = items[0]
-            message_id = str(last_message.get("item_id", ""))
 
-            if not message_id or message_id in self.processed_messages:
+            message_id = str(
+                last_message.get("item_id", "")
+            )
+
+            if (
+                not message_id
+                or message_id in self.processed_messages
+            ):
                 return False
 
-            sender_id = str(last_message.get("user_id", ""))
-            if self.bot.user_id and sender_id == str(self.bot.user_id):
+            sender_id = str(
+                last_message.get("user_id", "")
+            )
+
+            if (
+                self.bot.user_id
+                and sender_id == str(self.bot.user_id)
+            ):
                 self.processed_messages.add(message_id)
                 return False
 
-            item_type = last_message.get("item_type", "")
+            item_type = last_message.get(
+                "item_type",
+                "",
+            )
+
             if item_type != "text":
                 self.processed_messages.add(message_id)
                 return False
 
-            message_text = last_message.get("text", "").strip()
+            message_text = (
+                last_message
+                .get("text", "")
+                .strip()
+            )
+
             if not message_text:
-                self.processed_messages.add(message_id)
                 return False
 
-            self.bot.log_action(f"New private message from {sender_id}: {message_text[:100]}")
+            self.bot.log_action(
+                f"New private message from "
+                f"{sender_id}: {message_text[:100]}"
+            )
 
-            reply = self.api_client.send_message(thread_id, message_text)
-            if reply:
-                ok = self.bot.send_reply(thread_id, reply, thread_v2_id=thread_v2_id)
-                if not ok:
-                    self.bot.log_error(f"Could not reply to private thread_id={thread_id}")
+            reply = self.api_client.send_message(
+                thread_id,
+                message_text,
+            )
+
+            if not reply:
+                self.bot.log_error(
+                    "No reply generated by Gemini. "
+                    "The Instagram message will not receive "
+                    "an automatic reply."
+                )
+
+                self.processed_messages.add(message_id)
+
+                return False
+
+            ok = self.bot.send_reply(
+                thread_id,
+                reply,
+                thread_v2_id=thread_v2_id,
+            )
+
+            if not ok:
+                self.bot.log_error(
+                    f"Could not reply to private "
+                    f"thread_id={thread_id}"
+                )
 
             self.processed_messages.add(message_id)
 
             if len(self.processed_messages) > 5000:
-                self.processed_messages = set(list(self.processed_messages)[-2000:])
+                self.processed_messages = set(
+                    list(self.processed_messages)[-2000:]
+                )
 
-            return True
+            return ok
 
         except Exception as e:
-            self.bot.log_error(f"Error processing thread: {e}")
+            self.bot.log_error(
+                f"Error processing thread: {e}"
+            )
             return False
 
-    def monitor_messages(self, poll_interval: float = 1.2):
-        self.bot.log_action("Starting message monitoring...")
+    def monitor_messages(
+        self,
+        poll_interval: float = 1.2,
+    ):
+        self.bot.log_action(
+            "Starting message monitoring..."
+        )
 
         while self.bot.is_running:
             try:
@@ -447,39 +710,58 @@ class MessageHandler:
                         if not self.bot.is_running:
                             break
 
-                        # Process thread
-                        responded = self.process_thread(thread)
+                        responded = self.process_thread(
+                            thread
+                        )
 
-                        # If a reply was sent, wait between 15 and 20 seconds before moving to the next thread
                         if responded:
-                            delay = random.uniform(15, 20)
-                            self.bot.log_action(f"Waiting for {delay:.2f} seconds before replying to the next thread...")
+                            delay = random.uniform(
+                                15,
+                                20,
+                            )
+
+                            self.bot.log_action(
+                                f"Waiting for "
+                                f"{delay:.2f} seconds before "
+                                f"replying to the next thread..."
+                            )
+
                             time.sleep(delay)
 
                 time.sleep(poll_interval)
 
             except KeyboardInterrupt:
-                self.bot.log_action("Manually stopped")
+                self.bot.log_action(
+                    "Manually stopped"
+                )
+
                 self.bot.is_running = False
                 break
+
             except Exception as e:
-                self.bot.log_error(f"Monitoring error: {e}")
+                self.bot.log_error(
+                    f"Monitoring error: {e}"
+                )
                 time.sleep(3)
 
 
 def main():
     cookies_file = "cookies.json"
-    
-    # Place your Gemini API key here or set it as an environment variable GEMINI_API_KEY
-    gemini_api_key = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
-    
-    # Choose model such as gemini-2.5-flash or gemini-1.5-flash
-    gemini_model = "gemini-2.5-flash" 
-    poll_interval = 1.2
 
-    if gemini_api_key == "YOUR_GEMINI_API_KEY_HERE":
-        print("Warning: Please set your Gemini API key in the code or environment variable GEMINI_API_KEY.")
+    # 1. البحث عن المفتاح في متغيرات البيئة
+    gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+
+    # 2. في حال عدم وجوده، يطلب البرنامج من المستخدم إدخاله يدوياً في التيرمينال عند التشغيل
+    if not gemini_api_key:
+        print("=== Gemini API Key Required ===")
+        gemini_api_key = input("Enter your Gemini API Key: ").strip()
+
+    if not gemini_api_key:
+        print("ERROR: GEMINI_API_KEY is required to start the bot.")
         return
+
+    gemini_model = "gemini-3.8-flash"
+    poll_interval = 1.2
 
     bot = InstagramBot(cookies_file=cookies_file)
     api_client = APIClient(api_key=gemini_api_key, model=gemini_model)
