@@ -415,7 +415,6 @@ class APIClient:
         self.api_key = api_key.strip()
         # تم إزالة أول نموذجين وحفظ النموذج الشغال في بداية القائمة مع نماذج مستقرة
         self.models = models or [
-            "gemini-3.6-flash",
             "gemini-3.5-flash",
             "gemini-2.5-flash",
         ]
