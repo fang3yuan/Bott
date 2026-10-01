@@ -475,86 +475,92 @@ class APIClient:
             "contents": history,
         }
 
-        try:
-            response = self.http.post(
-                f"{self.base_url}?key={self.api_key}",
-                json=payload,
-                headers={
-                    "Content-Type": "application/json"
-                },
-                timeout=(8, 25),
-            )
+        # تطبيق خاصية Exponential Backoff & Retries لمعالجة خطأ 503 أو الضغط المؤقت
+        max_retries = 3
+        retry_delay = 3.0
 
-            if response.status_code != 200:
-                print(
-                    f"Gemini API Error "
-                    f"({response.status_code}): "
-                    f"{response.text}"
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = self.http.post(
+                    f"{self.base_url}?key={self.api_key}",
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json"
+                    },
+                    timeout=(8, 25),
                 )
 
-                if history and history[-1].get("role") == "user":
-                    history.pop()
+                if response.status_code == 200:
+                    data = response.json()
+                    candidates = data.get("candidates", [])
 
-                return ""
+                    if candidates:
+                        parts = (
+                            candidates[0]
+                            .get("content", {})
+                            .get("parts", [])
+                        )
 
-            data = response.json()
+                        if parts:
+                            reply = (
+                                parts[0]
+                                .get("text", "")
+                                .strip()
+                            )
 
-            candidates = data.get("candidates", [])
+                            if reply:
+                                history.append({
+                                    "role": "model",
+                                    "parts": [
+                                        {
+                                            "text": reply
+                                        }
+                                    ],
+                                })
 
-            if candidates:
-                parts = (
-                    candidates[0]
-                    .get("content", {})
-                    .get("parts", [])
-                )
+                                return reply
 
-                if parts:
-                    reply = (
-                        parts[0]
-                        .get("text", "")
-                        .strip()
+                # التعامل مع خطأ 503 أو 429 (إعادة المحاولة مع مضاعفة وقت الانتظار)
+                elif response.status_code in (503, 429):
+                    self.log_api_error(
+                        f"Gemini API ({response.status_code}) - High demand. "
+                        f"Retrying attempt {attempt}/{max_retries} in {retry_delay}s..."
                     )
+                    time.sleep(retry_delay)
+                    retry_delay *= 2.0
+                    continue
 
-                    if reply:
-                        history.append({
-                            "role": "model",
-                            "parts": [
-                                {
-                                    "text": reply
-                                }
-                            ],
-                        })
+                else:
+                    print(
+                        f"Gemini API Error "
+                        f"({response.status_code}): "
+                        f"{response.text}"
+                    )
+                    break
 
-                        return reply
+            except requests.RequestException as e:
+                self.log_api_error(
+                    f"Gemini request network error (Attempt {attempt}/{max_retries}): {e}"
+                )
+                time.sleep(retry_delay)
+                retry_delay *= 2.0
+                continue
 
-            if history and history[-1].get("role") == "user":
-                history.pop()
+            except Exception as e:
+                self.log_api_error(
+                    f"Gemini error: {e}"
+                )
+                break
 
-            self.log_api_error(
-                "Gemini returned no usable response."
-            )
+        # في حال فشلت جميع المحاولات
+        if history and history[-1].get("role") == "user":
+            history.pop()
 
-            return ""
+        self.log_api_error(
+            "Gemini failed to return a valid response after retries."
+        )
 
-        except requests.RequestException as e:
-            if history and history[-1].get("role") == "user":
-                history.pop()
-
-            self.log_api_error(
-                f"Gemini request failed: {e}"
-            )
-
-            return ""
-
-        except Exception as e:
-            if history and history[-1].get("role") == "user":
-                history.pop()
-
-            self.log_api_error(
-                f"Gemini error: {e}"
-            )
-
-            return ""
+        return ""
 
     def log_api_error(self, message: str):
         print(
@@ -751,7 +757,7 @@ def main():
     # 1. البحث عن المفتاح في متغيرات البيئة
     gemini_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
 
-    # 2. في حال عدم وجوده، يطلب البرنامج من المستخدم إدخاله يدوياً في التيرمينال عند التشغيل
+    # 2. في حال عدم وجوده، يطلب السكربت من المستخدم إدخاله يدوياً عند التشغيل
     if not gemini_api_key:
         print("=== Gemini API Key Required ===")
         gemini_api_key = input("Enter your Gemini API Key: ").strip()
