@@ -410,7 +410,7 @@ class APIClient:
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-3.8-flash",
+        model: str = "gemini-3.6-flash",
     ):
         self.api_key = api_key.strip()
         self.model = model
