@@ -1,30 +1,27 @@
-# 🤖 Bott - Automated Cookie-Based Bot & Script Utility
+<div align="center">
 
-**Bott** is a Python-based automation tool designed to interact with web services using dynamic HTTP requests and session headers. It simplifies automated interactions, requests handling, and token management for personal projects and experimentation.
+# 🤖 InstaAI-Bot
 
----
+**An intelligent, lightweight Instagram DM auto-responder powered by Google's Gemini 2.5 Flash API.**
 
-### 💡 Project Overview
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Gemini](https://img.shields.io/badge/Model-Gemini%202.5%20Flash-orange.svg?logo=google&logoColor=white)](https://ai.google.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](#)
 
-This repository contains automation scripts and configuration setups designed for session handling. 
-
-> ⚠️ **IMPORTANT SECURITY NOTICE:**  
-> The session cookies and parameters included in this repository are **completely expired and invalid**. They are exposed intentionally as placeholders/examples for demonstration and testing purposes.   
-> **Never commit active or valid personal cookies, tokens, or credentials to public repositories.**
+*Seamlessly handle 1-on-1 Instagram conversations when you are away with natural, human-like AI responses.*
 
 ---
 
-### ⚙️ Features
+</div>
 
-- 🔄 **Automated Session Handling:** Uses structured HTTP requests for quick interaction.
-- 🍪 **Cookie-Based Authentication:** Designed to parse and inject session headers into automated tasks.
-- 🛠️ **Lightweight & Fast:** Minimal dependencies for clean and direct execution.
+## 🌟 Highlights
+
+* **🧠 Smart AI Conversations**: Powered by `gemini-2.5-flash` to craft short, friendly, and authentic replies without revealing it's an AI.
+* **🛡️ Anti-Bot Protection**: Includes randomized human-like delays (**15–20 seconds**) between replies to prevent rate limits.
+* **🔑 Auto Token Retrieval**: Dynamically extracts required `fb_dtsg` and `lsd` tokens for Instagram GraphQL endpoints.
+* **🎯 1-on-1 Focus**: Filters for private text messages, safely ignoring group chats and media-only messages.
+* **📊 Comprehensive Logging**: Real-time terminal timestamps and detailed error logging saved to `bot_errors.log`.
 
 ---
 
-### 🚀 Getting Started
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/fang3yuan/Bott.git](https://github.com/fang3yuan/Bott.git)
-   cd Bott
+## 🛠️ Architecture Flow
