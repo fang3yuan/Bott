@@ -1,120 +1,138 @@
 # InstaAI-Bot
 
-> AI-powered Instagram DM auto-responder using Google Gemini.
+<div align="center">
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
-[![Gemini](https://img.shields.io/badge/Google-Gemini-blue?style=flat-square)](https://ai.google.dev/)
-[![Instagram](https://img.shields.io/badge/Platform-Instagram-E4405F?style=flat-square&logo=instagram)](https://www.instagram.com/)
+**AI-powered Instagram DM auto-responder using Google Gemini**
+
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Gemini](https://img.shields.io/badge/Google-Gemini-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Instagram](https://img.shields.io/badge/Instagram-Automation-E4405F?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/)
+
+</div>
 
 ---
 
 ## Overview
 
-**InstaAI-Bot** is a lightweight Python bot that monitors Instagram private messages and generates automatic replies using **Google Gemini 3.8 Flash**.
+A lightweight Python bot that monitors **Instagram DMs**, generates replies with **Google Gemini**, and maintains conversation context during runtime.
 
-It is designed to be simple, lightweight, and easy to configure.
-
-## Features
-
-- Google Gemini 2.5 Flash integration
-- Automatic Instagram DM replies
-- Private 1-to-1 conversation support
-- Conversation context during runtime
-- Random delay between replies
-- Cookie-based authentication
-- Error and activity logging
-- Minimal dependencies
+```text
+Instagram DM
+     │
+     ▼
+Message Filter
+     │
+     ▼
+Conversation Context
+     │
+     ▼
+Google Gemini
+     │
+     ▼
+Automatic Reply
+```
 
 ---
 
-## Installation
+## Features
 
-### Clone the repository
+| Feature | Description |
+|---|---|
+| Gemini AI | Automatic AI-generated replies |
+| DM Automation | Monitors unread private messages |
+| Context | Maintains runtime conversation history |
+| Fallback | Automatically tries another Gemini model |
+| Authentication | Instagram cookie-based sessions |
+| Filtering | Ignores unsupported / duplicate messages |
+| Timing | Randomized delay between replies |
+| Logging | Error logging to `bot_errors.log` |
+
+---
+
+## Setup
 
 ```bash
 git clone https://github.com/fang3yuan/InstaAI-Bot.git
 cd InstaAI-Bot
-```
-
-### Install dependencies
-
-```bash
 pip install -r requirements.txt
-```
-
-### Run
-
-```bash
 python insta.py
 ```
 
----
+### Gemini
 
-## Gemini API Key
+Set your API key:
 
-The bot requires a Google Gemini API key.
-
-Set your API key as an environment variable:
-
-```env
-GEMINI_API_KEY=YOUR_API_KEY
+```bash
+export GEMINI_API_KEY="YOUR_API_KEY"
 ```
 
-Never commit your API key to the repository.
+Windows:
+
+```cmd
+set GEMINI_API_KEY=YOUR_API_KEY
+```
 
 ---
 
-## Instagram Cookies
+## Instagram Session
 
-The bot uses Instagram session cookies for authentication.
-
-The recommended browser extension for exporting cookies is:
-
-**EditThisCookie (V3)**
-
-[Chrome Web Store](https://chromewebstore.google.com/detail/editthiscookie-v3/ojfebgpkimhlhcblbalbfjblapadhbol)
-
-### Setup
-
-1. Log in to Instagram in your browser.
-2. Open **EditThisCookie (V3)** while on `instagram.com`.
-3. Export your cookies.
-4. Save them as:
+Export your Instagram cookies using **EditThisCookie (V3)** and save them as:
 
 ```text
 cookies.json
 ```
 
-5. Place the file next to `insta.py`.
-
 ```text
 InstaAI-Bot/
 ├── insta.py
 ├── cookies.json
-└── ...
+├── requirements.txt
+├── runtime.txt
+└── README.md
 ```
+
+> Never publish real Instagram cookies or API keys.
 
 ---
 
-## Important: cookies.json
+## Configuration
 
-The `cookies.json` included in this repository contains **dummy / expired cookie data** for demonstration purposes.
+Customize the assistant behavior through:
 
-It is **not a real Instagram session** and cannot be used to log in.
-
-Real Instagram cookies must **never** be published or shared publicly.
-
-They may contain sensitive session credentials such as:
-
-```text
-sessionid
-csrftoken
-ds_user_id
+```python
+self.system_instruction
 ```
 
-Treat them as confidential credentials.
+This controls the AI's tone, personality, and response behavior.
 
-Add the following to `.gitignore`:
+---
+
+## Runtime
+
+```text
+Unread DM
+   │
+   ├── Invalid → Ignore
+   │
+   └── Valid
+        │
+        ▼
+     Gemini
+        │
+        ▼
+      Reply
+        │
+        ▼
+ Randomized Delay
+```
+
+Conversation context exists only while the bot is running.
+
+---
+
+## Security
+
+Add sensitive files to `.gitignore`:
 
 ```gitignore
 cookies.json
@@ -123,75 +141,33 @@ bot_errors.log
 __pycache__/
 ```
 
----
-
-## How It Works
-
-```text
-Instagram
-    │
-    │  New DM
-    ▼
-InstaAI-Bot
-    │
-    │  Message
-    ▼
-Gemini 2.5 Flash
-    │
-    │  Generated reply
-    ▼
-Instagram
-```
-
----
-
-## Project Structure
-
-```text
-InstaAI-Bot/
-│
-├── insta.py
-├── cookies.json
-├── requirements.txt
-├── runtime.txt
-├── bot_errors.log
-└── README.md
-```
-
-| File | Description |
-|------|-------------|
-| `insta.py` | Main bot implementation |
-| `cookies.json` | Instagram cookies |
-| `requirements.txt` | Python dependencies |
-| `runtime.txt` | Runtime configuration |
-| `bot_errors.log` | Error log |
-| `README.md` | Documentation |
+Treat `cookies.json` as a session credential.
 
 ---
 
 ## Notes
 
-- The bot focuses on private text messages.
-- Group conversations may be ignored.
-- Replies include a delay between messages.
-- Instagram's internal endpoints may change over time.
-- Keep all session cookies and API keys private.
-- Use the project responsibly and in accordance with the relevant platform policies.
+- Python **3.11+**
+- Private 1-to-1 text conversations
+- Duplicate messages are ignored
+- Instagram internal endpoints may change
+- Requires valid Instagram session cookies
+- Requires a Google Gemini API key
 
 ---
 
 ## Disclaimer
 
-This project is provided for educational and personal automation purposes.
+For educational and personal automation purposes.
 
-You are responsible for the account, credentials, API keys, cookies, and usage of the software.
+Use only with accounts and credentials you are authorized to access. Follow the applicable Instagram and Google Gemini policies.
 
 ---
 
 <div align="center">
 
-**InstaAI-Bot**
-
 `Instagram` · `Gemini` · `Python`
+
+**InstaAI-Bot**
 
 </div>
