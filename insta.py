@@ -1,11 +1,12 @@
-import requests
 import json
-import time
 import os
-import uuid
+import random
 import re
+import time
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+import requests
 
 
 class InstagramBot:
@@ -53,14 +54,14 @@ class InstagramBot:
 
     def login(self) -> bool:
         if not os.path.exists(self.cookies_file):
-            self.log_error(f"ملف الكوكيز غير موجود: {self.cookies_file}")
+            self.log_error(f"Cookies file not found: {self.cookies_file}")
             return False
 
         try:
             with open(self.cookies_file, "r", encoding="utf-8") as f:
                 raw_data = json.load(f)
         except Exception as e:
-            self.log_error(f"فشل قراءة ملف الكوكيز: {e}")
+            self.log_error(f"Failed to read cookies file: {e}")
             return False
 
         cookies = self._extract_cookies(raw_data)
@@ -79,7 +80,7 @@ class InstagramBot:
         rur = cookies.get("rur", "").strip()
 
         if not session_id or not csrftoken:
-            self.log_error("ملف الكوكيز يجب أن يحتوي على sessionid و csrftoken على الأقل")
+            self.log_error("Cookies file must contain at least sessionid and csrftoken")
             return False
 
         self.session.cookies.clear()
@@ -89,7 +90,7 @@ class InstagramBot:
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "Accept-Language": "ar-EG,ar;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate",
             "Referer": "https://www.instagram.com/direct/inbox/",
             "Origin": "https://www.instagram.com",
@@ -140,13 +141,13 @@ class InstagramBot:
             if r.status_code == 200:
                 data = r.json()
                 if "inbox" in data or "data" in data:
-                    self.log_action("تم تسجيل الدخول بنجاح باستخدام cookies.json")
+                    self.log_action("Successfully logged in using cookies.json")
                     return True
 
-            self.log_error(f"فشل اختبار الجلسة: {r.status_code} | {r.text[:300]}")
+            self.log_error(f"Session test failed: {r.status_code} | {r.text[:300]}")
             return False
         except Exception as e:
-            self.log_error(f"خطأ أثناء اختبار الجلسة: {e}")
+            self.log_error(f"Error during session test: {e}")
             return False
 
     def get_unread_messages(self) -> List[Dict[str, Any]]:
@@ -162,7 +163,7 @@ class InstagramBot:
             )
 
             if r.status_code != 200:
-                self.log_error(f"خطأ جلب الرسائل: {r.status_code} | {r.text[:200]}")
+                self.log_error(f"Error fetching messages: {r.status_code} | {r.text[:200]}")
                 return []
 
             data = r.json()
@@ -170,7 +171,7 @@ class InstagramBot:
             return inbox.get("threads", [])
 
         except Exception as e:
-            self.log_error(f"استثناء أثناء جلب الرسائل: {e}")
+            self.log_error(f"Exception while fetching messages: {e}")
             return []
 
     def _fetch_tokens(self):
@@ -224,13 +225,13 @@ class InstagramBot:
                         break
 
                 if self._fb_dtsg and self._lsd:
-                    self.log_action("تم استخراج توكنات الإرسال بنجاح")
+                    self.log_action("Sending tokens successfully extracted")
                     return
 
             except Exception as e:
-                self.log_error(f"خطأ أثناء استخراج التوكنات: {e}")
+                self.log_error(f"Error during token extraction: {e}")
 
-        self.log_error("فشل استخراج fb_dtsg و lsd")
+        self.log_error("Failed to extract fb_dtsg and lsd")
 
     def send_reply(self, thread_id: str, message: str, thread_v2_id: Optional[str] = None) -> bool:
         offline_id = str(int(time.time() * 1000)) + str(uuid.uuid4().int)[:6]
@@ -274,7 +275,7 @@ class InstagramBot:
                     "https://www.instagram.com/api/graphql",
                     headers={
                         "Accept": "*/*",
-                        "Accept-Language": "ar-EG,ar;q=0.9,en-US;q=0.8,en;q=0.7",
+                        "Accept-Language": "en-US,en;q=0.9",
                         "Content-Type": "application/x-www-form-urlencoded",
                         "Origin": "https://www.instagram.com",
                         "Referer": f"https://www.instagram.com/direct/t/{ig_thread_id}",
@@ -294,7 +295,7 @@ class InstagramBot:
                 if r.status_code == 200:
                     resp = r.json()
                     if resp.get("data") or (not resp.get("errors")):
-                        self.log_action(f"تم إرسال الرد بنجاح إلى {ig_thread_id}")
+                        self.log_action(f"Reply successfully sent to {ig_thread_id}")
                         return True
                     self.log_error(f"GraphQL error: {str(resp)[:200]}")
                 else:
@@ -305,83 +306,70 @@ class InstagramBot:
                         self._lsd = None
 
             except Exception as e:
-                self.log_error(f"استثناء في GraphQL send: {e}")
+                self.log_error(f"Exception in GraphQL send: {e}")
 
         return False
 
 
 class APIClient:
-    def __init__(self, model: str = "1"):
-        self.model = str(model)
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
+        self.api_key = api_key
+        self.model = model
         self.http = requests.Session()
-        self.url = "https://zecora0.serv00.net/deepseek.php"
-        self.thread_memory: Dict[str, str] = {}
-        self.thread_initialized: Dict[str, bool] = {}
+        self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
+        self.thread_history: Dict[str, List[Dict[str, Any]]] = {}
 
-        self.base_prompt = (
-            "أنت الآن مساعد مؤقت يرد بدل صاحب حساب إنستغرام. "
-            "هدفك أن تبلغ الشخص بلطف أن صاحب الحساب غير موجود حاليًا "
-            "وأنك هنا لمساعدته إلى أن يرجع. "
-            "الردود تكون قصيرة جدًا وطبيعية وباللهجة العربية البسيطة. "
-            "لا تقل إنك نموذج ذكاء اصطناعي. "
-            "لا تتكلم رسميًا. "
-            "ابدأ غالبًا بفكرة مثل: أنا هنا لمساعدتك لحد ما يجي صاحب الحساب، شتريد؟ "
-            "إذا سأل الشخص عن صاحب الحساب قل له إنه غير متوفر حاليًا وسيوصل كلامه لاحقًا. "
-            "لا تخرج عن هذا الدور."
+        self.system_instruction = (
+            "You are an assistant replying on behalf of an Instagram account owner. "
+            "Politely inform the sender that the account owner is currently unavailable, "
+            "and that you are here to assist them until they return. "
+            "Keep your responses very short, natural, and friendly. "
+            "Do NOT state that you are an AI model. "
+            "Avoid overly formal language. "
+            "Usually start with an idea like: 'I'm here to help until the owner gets back, how can I help you?' "
+            "If asked about the account owner, state that they are currently unavailable and their message will be passed on later. "
+            "Do not break character."
         )
 
     def send_message(self, thread_id: str, message: str) -> str:
-        conversation_id = self.thread_memory.get(thread_id)
-        initialized = self.thread_initialized.get(thread_id, False)
+        if thread_id not in self.thread_history:
+            self.thread_history[thread_id] = []
 
-        if not initialized:
-            composed_message = (
-                f"{self.base_prompt}\n\n"
-                f"رسالة الشخص:\n{message}\n\n"
-                f"رد الآن بصفتك المساعد المؤقت."
-            )
-        else:
-            composed_message = message
+        history = self.thread_history[thread_id]
+        history.append({"role": "user", "parts": [{"text": message}]})
 
-        payload: Dict[str, str] = {
-            "model": self.model,
-            "message": composed_message
+        payload = {
+            "system_instruction": {
+                "parts": [{"text": self.system_instruction}]
+            },
+            "contents": history
         }
-
-        if conversation_id:
-            payload["conversation_id"] = conversation_id
 
         try:
             response = self.http.post(
-                self.url,
+                f"{self.base_url}?key={self.api_key}",
                 json=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "User-Agent": "InstagramBot/1.0"
-                },
+                headers={"Content-Type": "application/json"},
                 timeout=(8, 25)
             )
 
             if response.status_code != 200:
-                return f"خطأ API: {response.status_code}"
+                print(f"Gemini API Error ({response.status_code}): {response.text}")
+                return "A temporary error occurred."
 
             data = response.json()
+            candidates = data.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    reply = parts[0].get("text", "").strip()
+                    history.append({"role": "model", "parts": [{"text": reply}]})
+                    return reply
 
-            if not data.get("success"):
-                return "صار خطأ مؤقت"
-
-            reply = str(data.get("response", "")).strip()
-            new_conversation_id = data.get("conversation_id")
-
-            if new_conversation_id:
-                self.thread_memory[thread_id] = new_conversation_id
-
-            self.thread_initialized[thread_id] = True
-            return reply or "أنا هنا لمساعدتك لحد ما يجي صاحب الحساب، شتريد؟"
+            return "I'm here to help until the account owner returns. How can I assist you?"
 
         except Exception as e:
-            return f"صار خطأ مؤقت: {str(e)[:120]}"
+            return f"A temporary error occurred: {str(e)[:120]}"
 
 
 class MessageHandler:
@@ -394,57 +382,61 @@ class MessageHandler:
         users = thread.get("users", []) or []
         return len(users) == 1
 
-    def process_thread(self, thread: Dict[str, Any]):
+    def process_thread(self, thread: Dict[str, Any]) -> bool:
+        """Processes a single thread and returns True if successfully replied."""
         try:
             thread_id = str(thread.get("thread_id", ""))
             thread_v2_id = str(thread.get("thread_v2_id", ""))
             items = thread.get("items", []) or []
 
             if not thread_id or not items:
-                return
+                return False
 
             if not self._is_private_1to1_thread(thread):
-                return
+                return False
 
             last_message = items[0]
             message_id = str(last_message.get("item_id", ""))
 
             if not message_id or message_id in self.processed_messages:
-                return
+                return False
 
             sender_id = str(last_message.get("user_id", ""))
             if self.bot.user_id and sender_id == str(self.bot.user_id):
                 self.processed_messages.add(message_id)
-                return
+                return False
 
             item_type = last_message.get("item_type", "")
             if item_type != "text":
                 self.processed_messages.add(message_id)
-                return
+                return False
 
             message_text = last_message.get("text", "").strip()
             if not message_text:
                 self.processed_messages.add(message_id)
-                return
+                return False
 
-            self.bot.log_action(f"رسالة خاصة جديدة من {sender_id}: {message_text[:100]}")
+            self.bot.log_action(f"New private message from {sender_id}: {message_text[:100]}")
 
             reply = self.api_client.send_message(thread_id, message_text)
             if reply:
                 ok = self.bot.send_reply(thread_id, reply, thread_v2_id=thread_v2_id)
                 if not ok:
-                    self.bot.log_error(f"تعذر الرد على private thread_id={thread_id}")
+                    self.bot.log_error(f"Could not reply to private thread_id={thread_id}")
 
             self.processed_messages.add(message_id)
 
             if len(self.processed_messages) > 5000:
                 self.processed_messages = set(list(self.processed_messages)[-2000:])
 
+            return True
+
         except Exception as e:
-            self.bot.log_error(f"خطأ أثناء معالجة thread: {e}")
+            self.bot.log_error(f"Error processing thread: {e}")
+            return False
 
     def monitor_messages(self, poll_interval: float = 1.2):
-        self.bot.log_action("بدء مراقبة الرسائل...")
+        self.bot.log_action("Starting message monitoring...")
 
         while self.bot.is_running:
             try:
@@ -454,31 +446,47 @@ class MessageHandler:
                     for thread in threads:
                         if not self.bot.is_running:
                             break
-                        self.process_thread(thread)
-                        time.sleep(0.15)
+
+                        # Process thread
+                        responded = self.process_thread(thread)
+
+                        # If a reply was sent, wait between 15 and 20 seconds before moving to the next thread
+                        if responded:
+                            delay = random.uniform(15, 20)
+                            self.bot.log_action(f"Waiting for {delay:.2f} seconds before replying to the next thread...")
+                            time.sleep(delay)
 
                 time.sleep(poll_interval)
 
             except KeyboardInterrupt:
-                self.bot.log_action("تم الإيقاف يدويًا")
+                self.bot.log_action("Manually stopped")
                 self.bot.is_running = False
                 break
             except Exception as e:
-                self.bot.log_error(f"خطأ في المراقبة: {e}")
+                self.bot.log_error(f"Monitoring error: {e}")
                 time.sleep(3)
 
 
 def main():
     cookies_file = "cookies.json"
-    ai_model = "1"  # 1=DeepSeek V3.2 | 2=DeepSeek R1 | 3=DeepSeek Coder
+    
+    # Place your Gemini API key here or set it as an environment variable GEMINI_API_KEY
+    gemini_api_key = os.environ.get("GEMINI_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
+    
+    # Choose model such as gemini-2.5-flash or gemini-1.5-flash
+    gemini_model = "gemini-2.5-flash" 
     poll_interval = 1.2
 
+    if gemini_api_key == "YOUR_GEMINI_API_KEY_HERE":
+        print("Warning: Please set your Gemini API key in the code or environment variable GEMINI_API_KEY.")
+        return
+
     bot = InstagramBot(cookies_file=cookies_file)
-    api_client = APIClient(model=ai_model)
+    api_client = APIClient(api_key=gemini_api_key, model=gemini_model)
     handler = MessageHandler(bot, api_client)
 
     if not bot.login():
-        bot.log_error("تعذر تسجيل الدخول من cookies.json")
+        bot.log_error("Failed to login using cookies.json")
         return
 
     bot.is_running = True
