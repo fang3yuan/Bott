@@ -410,16 +410,16 @@ class APIClient:
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-2.0-flash",
+        models: Optional[List[str]] = None,
     ):
         self.api_key = api_key.strip()
-        self.model = model
+        # تم إزالة أول نموذجين وحفظ النموذج الشغال في بداية القائمة مع نماذج مستقرة
+        self.models = models or [
+            "gemini-3.6-flash",
+            "gemini-3.5-flash",
+            "gemini-2.5-flash",
+        ]
         self.http = requests.Session()
-
-        self.base_url = (
-            "https://generativelanguage.googleapis.com/"
-            f"v1beta/models/{self.model}:generateContent"
-        )
 
         self.thread_history: Dict[
             str,
@@ -475,13 +475,15 @@ class APIClient:
             "contents": history,
         }
 
-        max_retries = 3
-        retry_delay = 3.0
-
-        for attempt in range(1, max_retries + 1):
+        # تجربة النماذج المتاحة بالتتابع بدءاً من النموذج الشغال
+        for idx, model in enumerate(self.models, start=1):
+            url = (
+                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+                f"?key={self.api_key}"
+            )
             try:
                 response = self.http.post(
-                    f"{self.base_url}?key={self.api_key}",
+                    url,
                     json=payload,
                     headers={
                         "Content-Type": "application/json"
@@ -519,42 +521,28 @@ class APIClient:
 
                                 return reply
 
-                elif response.status_code in (503, 429):
-                    self.log_api_error(
-                        f"Gemini API ({response.status_code}) - High demand. "
-                        f"Retrying attempt {attempt}/{max_retries} in {retry_delay}s..."
-                    )
-                    time.sleep(retry_delay)
-                    retry_delay *= 2.0
-                    continue
-
                 else:
-                    print(
-                        f"Gemini API Error "
-                        f"({response.status_code}): "
-                        f"{response.text}"
+                    self.log_api_error(
+                        f"Attempt {idx} using model '{model}' failed "
+                        f"({response.status_code}): {response.text[:150]}"
                     )
-                    break
 
             except requests.RequestException as e:
                 self.log_api_error(
-                    f"Gemini request network error (Attempt {attempt}/{max_retries}): {e}"
+                    f"Attempt {idx} using model '{model}' network error: {e}"
                 )
-                time.sleep(retry_delay)
-                retry_delay *= 2.0
-                continue
-
             except Exception as e:
                 self.log_api_error(
-                    f"Gemini error: {e}"
+                    f"Attempt {idx} using model '{model}' error: {e}"
                 )
-                break
+
+            time.sleep(0.5)
 
         if history and history[-1].get("role") == "user":
             history.pop()
 
         self.log_api_error(
-            "Gemini failed to return a valid response after retries."
+            "Gemini failed to return a valid response after trying all models."
         )
 
         return ""
@@ -761,11 +749,10 @@ def main():
         print("ERROR: GEMINI_API_KEY is required to start the bot.")
         return
 
-    gemini_model = "gemini-2.0-flash"
     poll_interval = 1.2
 
     bot = InstagramBot(cookies_file=cookies_file)
-    api_client = APIClient(api_key=gemini_api_key, model=gemini_model)
+    api_client = APIClient(api_key=gemini_api_key)
     handler = MessageHandler(bot, api_client)
 
     if not bot.login():
@@ -777,4 +764,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() #676767676676767
